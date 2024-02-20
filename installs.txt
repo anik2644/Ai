@@ -1,0 +1,25 @@
+# pip install numpy
+
+# pip install nltk
+#pip install networkx matplotlib  //visualize graph
+
+
+For setting python in vscode:
+download in extension:
+1)Python
+2)Pylance
+3)Python Debugger
+
+
+After setting python in vscode:
+1)pip install osmnx
+ 
+if u face these text in terminal 
+"User Command 'pip' not found, but can be installed with:
+sudo apt install python3-pip" then download
+1.1)sudo apt install python3-pip
+then again run the 1 number command.
+
+
+2)pip install matplotlib
+ 

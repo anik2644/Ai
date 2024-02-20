@@ -1,0 +1,5 @@
+This is a sample text file.
+It contains some lines of text
+for demonstration purposes.
+Feel free to replace this text
+with your own content.
