@@ -140,13 +140,13 @@ class TicTacToeBoard(_TTTB, Node):
     def to_pretty_string(board):
         to_char = lambda v: ("X" if v is True else ("O" if v is False else " "))
         rows = [
-            [to_char(board.tup[3 * row + col]) for col in range(3)] for row in range(3)
+            [to_char(board.tup[5 * row + col]) for col in range(5)] for row in range(5)
         ]
         result = ""
         for i, row in enumerate(rows):
             result += " | ".join(row) + "\n"
-            if i < 2:
-                result += "-" * 9 + "\n"
+            if i < 4:
+                result += "-" * 13 + "\n"
         return result
 
 def play_game():
@@ -187,39 +187,36 @@ def play_game():
     print("Nodes visited:", node_counter)  # Print node count after the game finishes
 
 def move_to_row_col(tup):
-    moves = [(i // 3 + 1, i % 3 + 1) for i, value in enumerate(tup) if value is not None]
+    moves = [(i // 5 + 1, i % 5 + 1) for i, value in enumerate(tup) if value is not None]
     return moves[-1]
 
 
 # Remaining code stays the same...
-
 def _winning_combos():
-    for start in range(0, 9, 3):
-        yield (start, start + 1, start + 2)
-    for start in range(3):
-        yield (start, start + 3, start + 6)
-    yield (0, 4, 8)
-    yield (2, 4, 6)
+    for start in range(0, 25, 5):
+        yield (start, start + 1, start + 2, start + 3, start + 4)
+    for start in range(5):
+        yield (start, start + 5, start + 10, start + 15, start + 20)
+    yield (0, 6, 12, 18, 24)
+    yield (4, 8, 12, 16, 20)
 
 def _find_winner(tup):
-    for i1, i2, i3 in _winning_combos():
-        v1, v2, v3 = tup[i1], tup[i2], tup[i3]
-        if False is v1 is v2 is v3:
+    for i1, i2, i3, i4, i5 in _winning_combos():
+        v1, v2, v3, v4, v5 = tup[i1], tup[i2], tup[i3], tup[i4], tup[i5]
+        if False is v1 is v2 is v3 is v4 is v5:
             return False
-        if True is v1 is v2 is v3:
+        if True is v1 is v2 is v3 is v4 is v5:
             return True
     return None
 
 def new_tic_tac_toe_board():
-    return TicTacToeBoard(tup=(None,) * 9, turn=True, winner=None, terminal=False)
+    return TicTacToeBoard(tup=(None,) * 25, turn=True, winner=None, terminal=False)
 
 
 start_time = time.time()  # Record the start time
 
-
 if __name__ == "__main__":
     play_game()
-
 
 end_time =  time.time()
 elapsed_time = end_time - start_time  # Calculate elapsed time

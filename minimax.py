@@ -5,10 +5,10 @@ import time
 node_counter = 0  # Global variable to count nodes visited
 
 def create_board():
-    return np.zeros((3, 3))
+    return np.zeros((5, 5))
 
 def possibilities(board):
-    return [(i, j) for i in range(3) for j in range(3) if board[i][j] == 0]
+    return [(i, j) for i in range(5) for j in range(5) if board[i][j] == 0]
 
 def evaluate(board):
     for player in [1, 2]:
