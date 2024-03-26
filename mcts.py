@@ -7,6 +7,9 @@ import time
 
 _TTTB = namedtuple("TicTacToeBoard", "tup turn winner terminal")
 
+# Global variable to count the nodes visited
+node_counter = 0
+
 class MCTS:
     def __init__(self, exploration_weight=1):
         self.Q = defaultdict(int)
@@ -26,11 +29,14 @@ class MCTS:
         return max(self.children[node], key=score)
 
     def do_rollout(self, node):
+        global node_counter  # Access the global node_counter variable
         path = self._select(node)
         leaf = path[-1]
         self._expand(leaf)
         reward = self._simulate(leaf)
         self._backpropagate(path, reward)
+        # Increment node counter after each rollout
+        node_counter += len(path)
 
     def _select(self, node):
         path = []
@@ -142,7 +148,9 @@ class TicTacToeBoard(_TTTB, Node):
             if i < 2:
                 result += "-" * 9 + "\n"
         return result
+
 def play_game():
+    global node_counter  # Access the global node_counter variable
     tree_x = MCTS()  # MCTS for player X
     tree_o = MCTS()  # MCTS for player O
     board = new_tic_tac_toe_board()
@@ -161,7 +169,6 @@ def play_game():
             else:
                 print("It's a tie!")
             break
-    #    time.sleep(2)
         
         # Player O's turn
         print("Player O's turn:")
@@ -176,12 +183,13 @@ def play_game():
             else:
                 print("It's a tie!")
             break
-    #    time.sleep(2)  # Add a pause after O's move as well
 
+    print("Nodes visited:", node_counter)  # Print node count after the game finishes
 
 def move_to_row_col(tup):
     moves = [(i // 3 + 1, i % 3 + 1) for i, value in enumerate(tup) if value is not None]
     return moves[-1]
+
 
 # Remaining code stays the same...
 
@@ -219,3 +227,6 @@ print("MCTS time: {:.7f} seconds".format(elapsed_time))
 # Save algorithm name and time data to a file
 with open("time.txt", "a") as file:
     file.write("MCTS: {:.7f} seconds \n".format(elapsed_time))
+
+with open("space.txt", "a") as file:
+    file.write("MCTS: {} nodes\n".format(node_counter))

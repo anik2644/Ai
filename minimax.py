@@ -1,7 +1,8 @@
 import numpy as np
 import random
-from time import sleep
 import time
+
+node_counter = 0  # Global variable to count nodes visited
 
 def create_board():
     return np.zeros((3, 3))
@@ -29,6 +30,8 @@ def diag_win(board, player):
     return np.all(np.diag(board) == player) or np.all(np.diag(np.fliplr(board)) == player)
 
 def minimax(board, depth, player):
+    global node_counter  # Access the global node_counter variable
+    node_counter += 1  # Increment node counter
     if player == 2:
         best = [-1, -1, -float('inf')]
     else:
@@ -55,30 +58,32 @@ def minimax(board, depth, player):
     return best
 
 def play_game():
+    global node_counter  # Access the global node_counter variable
     board, winner, counter = create_board(), 0, 1
+    node_counter = 0  # Reset node counter
     print(board)
-  #  sleep(2)
 
     while winner == 0:
         for player in [1, 2]:
             x, y, _ = minimax(board, 2, player)
             print(f"Player {player} moves to ({x}, {y})")
             board[x][y] = player
-            print("Board after " + str(counter) + " move")
             print(board)
-          #  sleep(2)
-            counter += 1
             winner = evaluate(board)
             if winner != 0:
                 break
     return winner
 
+if __name__ == "__main__":
+    start_time = time.time()  # Record the start time
+    print("Winner is:", play_game())
+    print("Nodes visited:", node_counter)
+    end_time =  time.time()
+    elapsed_time = end_time - start_time  # Calculate elapsed time
+    print("MINIMAX time: {:.7f} seconds".format(elapsed_time))
+    # Save algorithm name and time data to a file
+    with open("time.txt", "a") as file:
+        file.write("MINIMAX: {:.7f} seconds \n".format(elapsed_time))
 
-start_time = time.time()  # Record the start time
-
-print("Winner is: " + str(play_game()))
-end_time =  time.time()
-elapsed_time = end_time - start_time  # Calculate elapsed time
-print("MINIMAX time: {:.7f} seconds".format(elapsed_time))
-with open("time.txt", "a") as file:
-    file.write("MINIMAX: {:.7f} seconds \n".format(elapsed_time))
+    with open("space.txt", "a") as file:
+        file.write("MINIMAX: {} nodes\n".format(node_counter))

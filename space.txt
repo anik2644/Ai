@@ -1,0 +1,3 @@
+MINIMAX: 290 nodes
+ALPHA_BETA: 124 nodes
+MCTS: 714 nodes
