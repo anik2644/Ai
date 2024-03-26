@@ -1,3 +1,3 @@
-MINIMAX: 0.0200002 seconds 
-ALPHA_BETA: 0.0109999 seconds 
-MCTS: 0.0130002 seconds 
+MINIMAX: 0.0209982 seconds 
+ALPHA_BETA: 0.0140009 seconds 
+MCTS: 0.0175242 seconds 
