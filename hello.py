@@ -161,7 +161,7 @@ def play_game():
             else:
                 print("It's a tie!")
             break
-        time.sleep(2)
+    #    time.sleep(2)
         
         # Player O's turn
         print("Player O's turn:")
@@ -176,9 +176,9 @@ def play_game():
             else:
                 print("It's a tie!")
             break
-        time.sleep(2)  # Add a pause after O's move as well
+    #    time.sleep(2)  # Add a pause after O's move as well
 
-        
+
 def move_to_row_col(tup):
     moves = [(i // 3 + 1, i % 3 + 1) for i, value in enumerate(tup) if value is not None]
     return moves[-1]
@@ -205,5 +205,14 @@ def _find_winner(tup):
 def new_tic_tac_toe_board():
     return TicTacToeBoard(tup=(None,) * 9, turn=True, winner=None, terminal=False)
 
+
+start_time = time.time()  # Record the start time
+
+
 if __name__ == "__main__":
     play_game()
+
+
+end_time = time.time()  # Record the end time
+execution_time = end_time - start_time
+print(f"Total execution time: {execution_time} seconds")

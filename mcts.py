@@ -1,116 +1,221 @@
-import numpy as np
-import random
-from time import sleep
+from collections import namedtuple
+from random import choice
+from abc import ABC, abstractmethod
+from collections import defaultdict
+import math
+import time
 
-class Node:
-    def __init__(self, state, parent=None):
-        self.state = state
-        self.parent = parent
-        self.children = []
-        self.visits = 0
-        self.value = 0
+_TTTB = namedtuple("TicTacToeBoard", "tup turn winner terminal")
 
-def create_board():
-    return np.zeros((3, 3))
+class MCTS:
+    def __init__(self, exploration_weight=1):
+        self.Q = defaultdict(int)
+        self.N = defaultdict(int)
+        self.children = dict()
+        self.exploration_weight = exploration_weight
 
-def possibilities(board):
-    return [(i, j) for i in range(3) for j in range(3) if board[i][j] == 0]
+    def choose(self, node):
+        if node.is_terminal():
+            raise RuntimeError(f"choose called on terminal node {node}")
+        if node not in self.children:
+            return node.find_random_child()
+        def score(n):
+            if self.N[n] == 0:
+                return float("-inf")
+            return self.Q[n] / self.N[n]
+        return max(self.children[node], key=score)
 
-def evaluate(board):
-    for player in [1, 2]:
-        if (row_win(board, player) or
-            col_win(board, player) or
-            diag_win(board, player)):
-            return player
-    if np.all(board != 0):
-        return -1
-    return 0
+    def do_rollout(self, node):
+        path = self._select(node)
+        leaf = path[-1]
+        self._expand(leaf)
+        reward = self._simulate(leaf)
+        self._backpropagate(path, reward)
 
-def row_win(board, player):
-    return any(np.all(row == player) for row in board)
+    def _select(self, node):
+        path = []
+        while True:
+            path.append(node)
+            if node not in self.children or not self.children[node]:
+                return path
+            unexplored = self.children[node] - self.children.keys()
+            if unexplored:
+                n = unexplored.pop()
+                path.append(n)
+                return path
+            node = self._uct_select(node)
+    def _expand(self, node):
+        if node in self.children:
+            return
+        self.children[node] = node.find_children()
 
-def col_win(board, player):
-    return any(np.all(col == player) for col in board.T)
+    def _simulate(self, node):
+        invert_reward = True
+        while True:
+            if node.is_terminal():
+                reward = node.reward()
+                return 1 - reward if invert_reward else reward
+            node = node.find_random_child()
+            invert_reward = not invert_reward
 
-def diag_win(board, player):
-    return np.all(np.diag(board) == player) or np.all(np.diag(np.fliplr(board)) == player)
+    def _backpropagate(self, path, reward):
+        for node in reversed(path):
+            self.N[node] += 1
+            self.Q[node] += reward
+            reward = 1 - reward
 
-def random_place(board, player):
-    selection = possibilities(board)
-    if selection:
-        return random.choice(selection)
-    else:
+    def _uct_select(self, node):
+        assert all(n in self.children for n in self.children[node])
+        log_N_vertex = math.log(self.N[node])
+        def uct(n):
+            return self.Q[n] / self.N[n] + self.exploration_weight * math.sqrt(
+                log_N_vertex / self.N[n]
+            )
+        return max(self.children[node], key=uct)
+
+class Node(ABC):
+    @abstractmethod
+    def find_children(self):
+        return set()
+
+    @abstractmethod
+    def find_random_child(self):
         return None
 
-def rollout(board, player):
-    while evaluate(board) == 0:
-        move = random_place(board, player)
-        if move:
-            board[move] = player
-            player = 3 - player
-    return evaluate(board)
+    @abstractmethod
+    def is_terminal(self):
+        return True
 
-def select_best_child(node):
-    return max(node.children, key=lambda c: c.value / c.visits + (2 * np.sqrt(np.log(node.visits) / c.visits)) if c.visits > 0 else float('inf'))
+    @abstractmethod
+    def reward(self):
+        return 0
 
-def expand_node(node):
-    move = random_place(node.state, 2)  # Assuming computer always plays as player 2
-    if move:
-        new_state = np.copy(node.state)
-        new_state[move] = 2
-        child_node = Node(new_state, parent=node)
-        node.children.append(child_node)
-        return child_node
-    else:
-        return None
+    @abstractmethod
+    def __hash__(self):
+        return 123456789
 
-def simulate(node):
-    if not node.children:
-        return rollout(node.state, 2)
-    else:
-        child_node = select_best_child(node)
-        value = simulate(child_node)
-        return value
+    @abstractmethod
+    def __eq__(node1, node2):
+        return True
 
-def backpropagate(node, value):
-    node.visits += 1
-    node.value += value
-    if node.parent:
-        backpropagate(node.parent, value)
+class TicTacToeBoard(_TTTB, Node):
+    def find_children(board):
+        if board.terminal:
+            return set()
+        return {
+            board.make_move(i) for i, value in enumerate(board.tup) if value is None
+        }
 
-def mcts(board, iterations):
-    root = Node(board)
-    for _ in range(iterations):
-        leaf = root
-        while leaf.children:
-            leaf = select_best_child(leaf)
-        if evaluate(leaf.state) == 0:
-            child_node = expand_node(leaf)
-            if child_node:
-                value = simulate(child_node)
-                backpropagate(child_node, value)
-    return select_best_child(root).state
+    def find_random_child(board):
+        if board.terminal:
+            return None
+        empty_spots = [i for i, value in enumerate(board.tup) if value is None]
+        return board.make_move(choice(empty_spots))
 
+    def reward(board):
+        if not board.terminal:
+            raise RuntimeError(f"reward called on nonterminal board {board}")
+        if board.winner is board.turn:
+            return 1
+        if board.winner is None:
+            return 0.5
+        return 0
+
+    def is_terminal(board):
+        return board.terminal
+
+    def make_move(board, index):
+        tup = board.tup[:index] + (board.turn,) + board.tup[index + 1 :]
+        turn = not board.turn
+        winner = _find_winner(tup)
+        is_terminal = (winner is not None) or not any(v is None for v in tup)
+        return TicTacToeBoard(tup, turn, winner, is_terminal)
+
+    def to_pretty_string(board):
+        to_char = lambda v: ("X" if v is True else ("O" if v is False else " "))
+        rows = [
+            [to_char(board.tup[3 * row + col]) for col in range(3)] for row in range(3)
+        ]
+        result = ""
+        for i, row in enumerate(rows):
+            result += " | ".join(row) + "\n"
+            if i < 2:
+                result += "-" * 9 + "\n"
+        return result
 def play_game():
-    board, winner, counter = create_board(), 0, 1
-    print(board)
-    sleep(2)
-
-    while winner == 0:
-        if counter % 2 == 0:
-            board = mcts(board, 1000)  # Adjust iterations as needed for complexity
-            print("Computer's move:")
-        else:
-            move = random_place(board, 1)
-            print(f"Player 1 moves to {move}")
-            board[move] = 1
-        print("Board after " + str(counter) + " move")
-        print(board)
-        sleep(2)
-        counter += 1
-        winner = evaluate(board)
-        if winner != 0:
+    tree_x = MCTS()  # MCTS for player X
+    tree_o = MCTS()  # MCTS for player O
+    board = new_tic_tac_toe_board()
+    print(board.to_pretty_string())
+    while True:
+        # Player X's turn
+        print("Player X's turn:")
+        for _ in range(50):
+            tree_x.do_rollout(board)
+        board = tree_x.choose(board)
+        print(board.to_pretty_string())
+        print(f"Player X moves: {move_to_row_col(board.tup)}")
+        if board.terminal:
+            if board.winner is not None:
+                print("Player X wins!")
+            else:
+                print("It's a tie!")
             break
-    return winner
+    #    time.sleep(2)
+        
+        # Player O's turn
+        print("Player O's turn:")
+        for _ in range(50):
+            tree_o.do_rollout(board)
+        board = tree_o.choose(board)
+        print(board.to_pretty_string())
+        print(f"Player O moves: {move_to_row_col(board.tup)}")
+        if board.terminal:
+            if board.winner is not None:
+                print("Player O wins!")
+            else:
+                print("It's a tie!")
+            break
+    #    time.sleep(2)  # Add a pause after O's move as well
 
-print("Winner is: " + str(play_game()))
+
+def move_to_row_col(tup):
+    moves = [(i // 3 + 1, i % 3 + 1) for i, value in enumerate(tup) if value is not None]
+    return moves[-1]
+
+# Remaining code stays the same...
+
+def _winning_combos():
+    for start in range(0, 9, 3):
+        yield (start, start + 1, start + 2)
+    for start in range(3):
+        yield (start, start + 3, start + 6)
+    yield (0, 4, 8)
+    yield (2, 4, 6)
+
+def _find_winner(tup):
+    for i1, i2, i3 in _winning_combos():
+        v1, v2, v3 = tup[i1], tup[i2], tup[i3]
+        if False is v1 is v2 is v3:
+            return False
+        if True is v1 is v2 is v3:
+            return True
+    return None
+
+def new_tic_tac_toe_board():
+    return TicTacToeBoard(tup=(None,) * 9, turn=True, winner=None, terminal=False)
+
+
+start_time = time.time()  # Record the start time
+
+
+if __name__ == "__main__":
+    play_game()
+
+
+end_time =  time.time()
+elapsed_time = end_time - start_time  # Calculate elapsed time
+print("MCTS time: {:.7f} seconds".format(elapsed_time))
+# Save algorithm name and time data to a file
+with open("time.txt", "a") as file:
+    file.write("MCTS: {:.7f} seconds \n".format(elapsed_time))

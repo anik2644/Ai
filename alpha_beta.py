@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from time import sleep
+from time import sleep, time
 
 def create_board():
     return np.zeros((3, 3))
@@ -62,7 +62,9 @@ def minimax(board, depth, player, alpha, beta):
 def play_game():
     board, winner, counter = create_board(), 0, 1
     print(board)
-    sleep(2)
+  #  sleep(2)
+
+ 
 
     while winner == 0:
         for player in [1, 2]:
@@ -71,11 +73,22 @@ def play_game():
             board[x][y] = player
             print("Board after " + str(counter) + " move")
             print(board)
-            sleep(2)
+           # sleep(2)
             counter += 1
             winner = evaluate(board)
             if winner != 0:
                 break
+
     return winner
 
+
+
+
+start_time = time()  # Record start time
+
 print("Winner is: " + str(play_game()))
+end_time = time()  # Record end time
+elapsed_time = end_time - start_time  # Calculate elapsed time
+print("ALPHA_BETA time: {:.7f} seconds".format(elapsed_time))
+with open("time.txt", "a") as file:
+    file.write("ALPHA_BETA: {:.7f} seconds \n".format(elapsed_time))
